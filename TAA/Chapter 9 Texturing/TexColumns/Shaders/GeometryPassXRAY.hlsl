@@ -156,6 +156,7 @@ GBufferOutput PS(VertexOut pin)
 
     output.WorldPos = float4(pin.PosW, 1.0f);
 
+    //output.Roughness = 0.0f;
     output.Roughness = 0.0f;
     
     float4 posH = mul(float4(pin.PosW, 1.0f), gViewProjRaw);
