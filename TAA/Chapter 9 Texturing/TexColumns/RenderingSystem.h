@@ -52,7 +52,7 @@ public:
     void OnResize(float aspectRatio);
     void Draw(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems, FrameResource* frame, const PassConstants& passConstants);
 
-    // Заполнение ресурсов
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     void BuildRootSignature();
     void BuildDescriptorHeaps(const std::unordered_map<std::string, std::unique_ptr<Texture>>& textures);
     void BuildShadersAndInputLayout();
@@ -60,7 +60,7 @@ public:
 
     void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 
-    // Доступ к GPU-объектам
+    // пїЅпїЅпїЅпїЅпїЅпїЅ пїЅ GPU-пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     ID3D12RootSignature* GetRootSignature() const;
     ID3D12DescriptorHeap* GetSrvHeap() const;
     UINT GetCbvSrvDescriptorSize() const;

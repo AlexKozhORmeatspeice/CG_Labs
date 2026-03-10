@@ -82,7 +82,6 @@ struct VertexOut
 
 VertexOut VS(VertexIn vin)
 {
-
     VertexOut vout = (VertexOut) 0.0f;
     
     float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
@@ -95,13 +94,11 @@ VertexOut VS(VertexIn vin)
     vout.PosW = posW;
 
     vout.PosH = mul(posW, gViewProj);
-    //float2 jitter = GenerateJitter(floor((gTotalTime * 60.) + 50) % 100);
+   // float2 jitter = GenerateJitter(floor((gTotalTime * 60.) + 50) % 100);
     float2 jitter = gJitter*0;
     float2 jitterNDC = jitter * 2.0 / gRenderTargetSize;
     vout.PosH.xy += jitterNDC * vout.PosH.w;
     
-    
-
     vout.NormalW = mul(vin.NormalL, (float3x3) gWorld);
     vout.NormalW = float3(0., 1., 0.);
     vout.TangentW = mul(vin.TangentL, (float3x3) gWorld);
@@ -112,7 +109,6 @@ VertexOut VS(VertexIn vin)
 
 VertexOut VSTerrain(VertexIn vin)
 {
-
     VertexOut vout = (VertexOut) 0.0f;
     
     float4 texC = mul(float4(vin.TexC, 0.0f, 1.0f), gTexTransform);
@@ -126,7 +122,6 @@ VertexOut VSTerrain(VertexIn vin)
     vout.PosW = posW;
 
     vout.PosH = mul(posW, gViewProj);
-   
     
 
     vout.NormalW = mul(vin.NormalL, (float3x3) gWorld);
@@ -151,7 +146,7 @@ GBufferOutput PS(VertexOut pin)
     GBufferOutput output;
 
     float4 texColor = gDiffuseMap.Sample(gsamAnisotropicWrap, pin.TexC);
-    output.Albedo = float4((texColor * gDiffuseAlbedo).xyz, 0.0f);
+    output.Albedo = float4(texColor.xyz, 1.0f);
     //output.Albedo = float4(pin.TexC, 0, 0);
 
     float3 normalSample = gNormalMap.Sample(gsamAnisotropicWrap, pin.TexC).rgb;

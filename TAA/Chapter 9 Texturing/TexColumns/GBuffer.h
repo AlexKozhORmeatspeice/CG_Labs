@@ -9,21 +9,21 @@ using Microsoft::WRL::ComPtr;
 class GBuffer
 {
 public:
-    static constexpr int NumTextures = 4; // Альбедо, нормали, позиции, roughness
+    static constexpr int NumTextures = 4; // пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, пїЅпїЅпїЅпїЅпїЅпїЅпїЅ, roughness
 
-    // G-Buffer текстуры
+    // G-Buffer пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     ComPtr<ID3D12Resource> Albedo = nullptr;
     ComPtr<ID3D12Resource> Normal = nullptr;
     ComPtr<ID3D12Resource> WorldPos = nullptr;
     ComPtr<ID3D12Resource> Roughness = nullptr;
 
-    // RTV дескрипторы
+    // RTV пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     D3D12_CPU_DESCRIPTOR_HANDLE AlbedoRTV;
     D3D12_CPU_DESCRIPTOR_HANDLE NormalRTV;
     D3D12_CPU_DESCRIPTOR_HANDLE WorldPosRTV;
     D3D12_CPU_DESCRIPTOR_HANDLE RoughnessRTV;
 
-    // SRV дескрипторы
+    // SRV пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     D3D12_CPU_DESCRIPTOR_HANDLE AlbedoSRV;
     D3D12_CPU_DESCRIPTOR_HANDLE NormalSRV;
     D3D12_CPU_DESCRIPTOR_HANDLE WorldPosSRV;
@@ -31,7 +31,7 @@ public:
 
     UINT SrvHeapStartIndex = 0;
 
-    // Инициализация всех ресурсов
+    // пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅ пїЅпїЅпїЅпїЅпїЅпїЅпїЅпїЅ
     void Initialize(ID3D12Device* device, UINT width, UINT height,
         D3D12_CPU_DESCRIPTOR_HANDLE* rtvHandles,
         D3D12_CPU_DESCRIPTOR_HANDLE* srvHandles);

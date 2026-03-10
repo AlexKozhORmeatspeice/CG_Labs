@@ -74,6 +74,7 @@ struct AABB
 	bool IntersectsFrustum(const XMFLOAT4 frustumPlanes[6]) const;
 };
 
+
 class Terrain
 {
 public:
@@ -89,6 +90,7 @@ public:
 	int renderlodlevel = 0;
 	int tileRenderIndex = 0;
 	std::unique_ptr<Node> mRootNode;
+
 
 	std::vector<float> mHeightData;
 	int mHeightmapWidth = 0;
@@ -125,7 +127,13 @@ void Terrain::Update(const XMFLOAT3& cameraPos, BoundingFrustum& frustum)
 
 void Terrain::GetVisibleTiles(std::vector<Tile*>& outTiles)
 {
+
+	//for (auto& t : mAllTiles)
+	//	mVisibleTiles.push_back(t.get());
 	outTiles = mVisibleTiles;
+
+
+
 }
 
 void Terrain::InitializeTerrain(ID3D12Device* device, int HeightMapIndex,
@@ -137,6 +145,7 @@ void Terrain::InitializeTerrain(ID3D12Device* device, int HeightMapIndex,
 
 	mRootNode = std::make_unique<Node>();
 	mRootNode->nodeDepth = 0;
+
 
 	int initialSize = (int)worldSize;
 	BuildQuadTree(mRootNode.get(), 0, 0, initialSize, 0);
@@ -160,7 +169,6 @@ void Terrain::BuildQuadTree(Node* node, int x, int y, int size, int depth)
 	tile->tileIndex = tileIndex++;
 	mAllTiles.push_back(std::move(tile));
 	node->tile = mAllTiles.back().get();
-
 	if (depth != maxLodLevel)
 	{
 		int halfSize = tileSize / 2;
@@ -394,7 +402,7 @@ private:
 	//
 	std::unique_ptr<Terrain> mTerrain;
 	std::vector<Tile*> m_visibleTerrainTiles;
-	float heightScale = 200;
+	float heightScale = 100;
 
 
 	// G-Buffer ресурсы
@@ -609,7 +617,6 @@ bool TexColumnsApp::Initialize()
 	init_info.LegacySingleSrvGpuDescriptor = m_ImGuiSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart();
 	ImGui_ImplWin32_Init(mhMainWnd);
 	ImGui_ImplDX12_Init(&init_info);
-
     // Execute the initialization commands.
     ThrowIfFailed(mCommandList->Close());
     ID3D12CommandList* cmdsLists[] = { mCommandList.Get() };
@@ -628,6 +635,8 @@ void TexColumnsApp::OnResize()
     // The window resized, so update the aspect ratio and recompute the projection matrix.
     XMMATRIX P = XMMatrixPerspectiveFovLH(0.4*MathHelper::Pi, AspectRatio(), 1.0f, 1000.0f);
     XMStoreFloat4x4(&mProj, P);
+
+
 }
 
 void TexColumnsApp::Update(const GameTimer& gt)
@@ -657,7 +666,6 @@ void TexColumnsApp::Update(const GameTimer& gt)
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
-
 	UpdateCamera(gt);
 	UpdateTerrain(gt);
 	// === ImGui Setup ===
@@ -665,6 +673,11 @@ void TexColumnsApp::Update(const GameTimer& gt)
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
 	ImGui::Begin("Settings");
+	ImGui::Text("Terrain Brush");
+
+	// Параметры кисти
+	ImGui::SliderFloat("Brush Radius", &mBrushRadius, 0.01f, 0.5f);
+	ImGui::SliderFloat("Brush Strength", &mBrushStrength, 0.01f, 1.0f);
 
 	ImGui::Text("\n\nLights\n\n");
 	AnimateMaterials(gt);
@@ -694,16 +707,13 @@ bool TexColumnsApp::RaycastToTerrainUV(int sx, int sy, XMFLOAT2& uvOut, XMFLOAT3
 	XMMATRIX invView = XMMatrixInverse(nullptr, view);
 	XMMATRIX invProj = XMMatrixInverse(nullptr, proj);
 
-
 	float px = 2.0f * sx / mClientWidth - 1.0f;
 	float py = -2.0f * sy / mClientHeight + 1.0f;
 
 	XMVECTOR rayClip = XMVectorSet(px, py, 1.0f, 1.0f);
 
-
 	XMVECTOR rayView = XMVector3TransformCoord(rayClip, invProj);
 	rayView = XMVectorSetW(rayView, 0.0f);
-
 
 	XMVECTOR rayWorld = XMVector3Normalize(XMVector3TransformNormal(rayView, invView));
 	XMVECTOR camPos = cam.GetPosition();
@@ -754,6 +764,40 @@ void TexColumnsApp::OnMouseDown(WPARAM btnState, int x, int y)
 
 	XMFLOAT2 uv;
 	XMFLOAT3 hit;
+	bool hitOK = RaycastToTerrainUV(x, y, uv, hit);
+
+	if (RaycastToTerrainUV(x, y, uv, hit))
+	{
+		mBrushActive = true;
+		mBrushHitUV = uv;
+		if (RaycastToTerrainUV(x, y, uv, hit))
+		{
+			// Применяем кисть с сохранением
+			bool raise = ((btnState & MK_LBUTTON) != 0);
+			ApplyBrushWithPersistence(uv, raise);
+
+			// Также обновляем для отображения в реальном времени
+			mBrushActive = true;
+			mBrushHitUV = uv;
+
+			//std::cout << "Mouse painting at UV: (" << uv.x << ", " << uv.y
+			//	<< "), World: (" << hit.x << ", " << hit.y << ", " << hit.z << ")" << std::endl;
+		}
+	}
+
+	if (!hitOK)
+	{
+		std::cout << "No terrain hit\n";
+		return;
+	}
+
+	if (btnState & MK_LBUTTON)
+		std::cout << "LMB terrain UV = " << uv.x << " " << uv.y
+		<< " world: " << hit.x << " " << hit.y << " " << hit.z << "\n";
+
+	if (btnState & MK_RBUTTON)
+		std::cout << "RMB terrain UV = " << uv.x << " " << uv.y
+		<< " world: " << hit.x << " " << hit.y << " " << hit.z << "\n";
 }
 
 void TexColumnsApp::OnMouseUp(WPARAM btnState, int x, int y)
@@ -778,10 +822,29 @@ void TexColumnsApp::OnMouseMove(WPARAM btnState, int x, int y)
 
 		}
 
+		if ((btnState & MK_LBUTTON) != 0 || (btnState & MK_RBUTTON) != 0)
+		{
+			XMFLOAT2 uv;
+			XMFLOAT3 hit;
+			if (RaycastToTerrainUV(x, y, uv, hit))
+			{
+				// Применяем кисть с сохранением
+				bool raise = ((btnState & MK_LBUTTON) != 0);
+				ApplyBrushWithPersistence(uv, raise);
+
+				// Также обновляем для отображения в реальном времени
+				mBrushActive = true;
+				mBrushHitUV = uv;
+			}
+		}
+
 		mLastMousePos.x = x;
 		mLastMousePos.y = y;
 	}
 }
+
+
+
  
 void TexColumnsApp::OnKeyPressed(const GameTimer& gt, WPARAM key)
 {
@@ -793,7 +856,6 @@ void TexColumnsApp::OnKeyPressed(const GameTimer& gt, WPARAM key)
 	{
 		cam.IncreaseSpeed(-0.05);
 	}
-
 	switch (key)
 	{
 	case 'A':
@@ -857,6 +919,9 @@ void TexColumnsApp::UpdateCamera(const GameTimer& gt)
 	XMMATRIX view = XMMatrixLookToLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
 }
+
+
+
 
 void TexColumnsApp::AnimateMaterials(const GameTimer& gt)
 {
@@ -2388,6 +2453,8 @@ void TexColumnsApp::BuildMaterials()
 
 	CreateMaterial("TerrainMaterial", (int)mMaterials.size(), TexOffsets["textures/terr_diffuse"], TexOffsets["textures/terr_normal"], XMFLOAT4(0.8f, 0.8f, 0.8f, 1.0f),XMFLOAT3(0.02f, 0.02f, 0.02f),0.8f);
 	//mHeightMapResource = mTextures["textures/terr_height"]->Resource.Get();
+
+
 }
 void TexColumnsApp::RenderCustomMesh(std::string unique_name, std::string meshname, std::string materialName, XMFLOAT3 Scale, XMFLOAT3 Rotation, XMFLOAT3 Position)
 {
@@ -2428,6 +2495,7 @@ void TexColumnsApp::RenderCustomMesh(std::string unique_name, std::string meshna
 
 void TexColumnsApp::BuildRenderItems()
 {
+
 	//RenderCustomMesh("building", "sponza", "", XMFLOAT3(0.07, 0.07, 0.07), XMFLOAT3(0, 3.14 / 2, 0), XMFLOAT3(0, 0, 0));
 	/*RenderCustomMesh("nigga", "negr", "NiggaMat", XMFLOAT3(3, 3, 3), XMFLOAT3(0, 3.14, 0), XMFLOAT3(0, 3, 0));
 	RenderCustomMesh("nigga2", "negr", "NiggaMat", XMFLOAT3(3, 3, 3), XMFLOAT3(0, 3.14, 0), XMFLOAT3(5, 3, 0));
@@ -2493,6 +2561,7 @@ void TexColumnsApp::BuildRenderItems()
 // NOT USING
 void TexColumnsApp::Draw(const GameTimer& gt)
 {
+
 	auto cmdListAlloc = mCurrFrameResource->CmdListAlloc;
 
 	// Reuse the memory associated with command recording.
@@ -3242,6 +3311,7 @@ void TexColumnsApp::UpdateTerrain(const GameTimer& gt)
 	if (!mTerrain)
 		return;
 
+
 	// Обновляем позицию камеры
 	XMVECTOR camPos = cam.GetPosition();
 	XMFLOAT3 cameraPosition;
@@ -3255,11 +3325,15 @@ void TexColumnsApp::UpdateTerrain(const GameTimer& gt)
 	// Обновляем terrain систему. Это заполняет m_visibleTiles
 	mTerrain->Update(cameraPosition, cam.GetFrustum());
 	mTerrain->mHeightScale = heightScale;
+
+
 }
 
 
 void TexColumnsApp::DrawTileRenderItems(ID3D12GraphicsCommandList* cmdList, std::vector<Tile*> tiles, int HeightIndex)
 {
+
+
 	UINT objCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(ObjectConstants));
 	UINT matCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(MaterialConstants));
 	UINT terrCBByteSize = d3dUtil::CalcConstantBufferByteSize(sizeof(TerrainConstants));
@@ -3288,14 +3362,17 @@ void TexColumnsApp::DrawTileRenderItems(ID3D12GraphicsCommandList* cmdList, std:
 		heightHandle.Offset(HeightIndex, mCbvSrvDescriptorSize);
 		cmdList->SetGraphicsRootDescriptorTable(0, heightHandle);
 
+		// Слот 1: diffuseMap (t1)
 		CD3DX12_GPU_DESCRIPTOR_HANDLE diffuseHandle(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 		diffuseHandle.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvDescriptorSize);
 		cmdList->SetGraphicsRootDescriptorTable(1, diffuseHandle);
 
+		// Слот 2: normalMap (t2)
 		CD3DX12_GPU_DESCRIPTOR_HANDLE normalHandle(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
 		normalHandle.Offset(ri->Mat->NormalSrvHeapIndex, mCbvSrvDescriptorSize);
 		cmdList->SetGraphicsRootDescriptorTable(2, normalHandle);
 
+		// Слот 3: heightModificationMap (t3) - НОВЫЙ!
 		if (mHeightModificationSrvIndex >= 0)
 		{
 			CD3DX12_GPU_DESCRIPTOR_HANDLE heightModHandle(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
@@ -3310,17 +3387,34 @@ void TexColumnsApp::DrawTileRenderItems(ID3D12GraphicsCommandList* cmdList, std:
 			cmdList->SetGraphicsRootDescriptorTable(3, heightHandle);
 		}
 
+		// Установка константных буферов
+		// Слот 4: cbPerObject (b0)
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex * objCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(4, objCBAddress);
 
+		// Слот 5: cbPass (b1) - Устанавливается в DeferredDraw перед вызовом этой функции
+		// cmdList->SetGraphicsRootConstantBufferView(5, ...); // Устанавливается в DeferredDraw
+
+		// Слот 6: cbMaterial (b2)
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex * matCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(6, matCBAddress);
 
+		// Слот 7: cbTerrainTile (b3)
 		D3D12_GPU_VIRTUAL_ADDRESS tileCBAddress = terrCB->GetGPUVirtualAddress() + t->tileIndex * terrCBByteSize;
 		cmdList->SetGraphicsRootConstantBufferView(7, tileCBAddress);
 
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
+
+	//static int drawCount = 0;
+	//drawCount++;
+	//if (drawCount % 60 == 0) // Выводить каждую секунду (при 60 FPS)
+	//{
+	//	std::cout << "Drawing " << tiles.size() << " tiles. "
+	//		<< "HeightMod SRV index: " << mHeightModificationSrvIndex
+	//		<< ", Data dirty: " << mHeightModificationDirty << std::endl;
+	//}
+
 }
 
 void TexColumnsApp::InitializeHeightModificationTexture()
