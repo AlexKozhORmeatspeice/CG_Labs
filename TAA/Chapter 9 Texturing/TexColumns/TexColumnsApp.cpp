@@ -99,7 +99,6 @@ private:
 	void UpdateMainPassCB(const GameTimer& gt);
 	// Работа с данными
 
-
 	void LoadAllTextures(); // загрузка из файла
 	void LoadTexture(const std::string& name); // и это тоже
 	void BuildLODs();
@@ -1884,6 +1883,7 @@ void TexColumnsApp::BuildPSOs()
 		reinterpret_cast<BYTE*>(mShaders["opaquePS"]->GetBufferPointer()),
 		mShaders["opaquePS"]->GetBufferSize()
 	};
+
 	opaquePsoDesc.RasterizerState = CD3DX12_RASTERIZER_DESC(D3D12_DEFAULT);
 	opaquePsoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_BACK;
 	opaquePsoDesc.BlendState = CD3DX12_BLEND_DESC(D3D12_DEFAULT);
@@ -1950,7 +1950,7 @@ void TexColumnsApp::BuildPSOs()
 
 	xrayPsoDesc.DepthStencilState.DepthEnable = TRUE;              // Включаем тест глубины
 	xrayPsoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO; // НЕ пишем в глубину
-	xrayPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER;    // Рисуем если объект ЗА другими
+	xrayPsoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;    // Рисуем если объект ЗА другими
 
 	// Настройка трафарета (опционально, для более точного контроля)
 	xrayPsoDesc.DepthStencilState.StencilEnable = FALSE;           // Пока отключаем
