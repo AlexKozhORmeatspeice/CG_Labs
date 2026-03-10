@@ -1914,6 +1914,17 @@ void DX12App::BuildRenderItems()
 
 	BuildRenderItem("box", "bricks0", XMMatrixScaling(100.f, 1.f, 100.f) * XMMatrixTranslation(0.f, -10.f, 0.f), nullptr, 0, 1.f, 10.f);
 
+	// Alpha-tested "grass card" demo: a standing quad above the ground casting a cut-out shadow.
+	BuildRenderItem(
+		"quad",
+		"grassAlpha",
+		XMMatrixRotationX(-XM_PIDIV2) * XMMatrixRotationY(0.6f) * XMMatrixTranslation(0.f, -5.f, -5.f),
+		nullptr,
+		(int)RenderLayer::AlphaTest,
+		20.0f,
+		2.0f
+	);
+
 	BuildRenderItem("trex", "trex", XMMatrixTranslation(40.f, -5.f, -60.f), nullptr, 0, 2.f);
 
 	std::vector<std::string> BaryonyxLODs = { "Baryonyx", "box" };
@@ -2668,4 +2679,3 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> DX12App::GetStaticSamplers()
 		anisotropicWrap, anisotropicClamp,
 		shadow };
 }
-
