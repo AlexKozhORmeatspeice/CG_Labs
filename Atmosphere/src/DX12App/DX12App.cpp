@@ -95,7 +95,7 @@ struct LightObject
 struct AtmosphereSettings
 {
 	bool Enabled = true;
-	float Cleanliness = 0.5f;
+	float Cleanliness = 1.0f;
 	float RayleighScaleHeight = 9200.f;
 	float MieScaleHeight = 1000.f;
 	float MieG = 0.9f;
@@ -157,6 +157,7 @@ private:
 
 	float SigmaRayleigh(float lambdaNm, float factor);
 
+	void UpdateTimeOfDay(const GameTimer& gt);
 	void CalculateSunParameters();
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> GetStaticSamplers();
@@ -326,7 +327,7 @@ void DX12App::OnResize()
 void DX12App::Update(const GameTimer& gt)
 {
 	OnKeyboardInput(gt);
-	CalculateSunParameters();
+	UpdateTimeOfDay(gt);
 
 	// Cycle through the circular frame resource array.
 	mCurrFrameResourceIndex = (mCurrFrameResourceIndex + 1) % gNumFrameResources;
@@ -350,10 +351,19 @@ void DX12App::Update(const GameTimer& gt)
 	UpdatePostProcessCB(gt);
 }
 
+void DX12App::UpdateTimeOfDay(const GameTimer& gt)
+{
+	mTimeOfDay += gt.DeltaTime() * mTimeSpeed;
+
+	if (mTimeOfDay >= 24.0f) mTimeOfDay -= 24.0f;
+	if (mTimeOfDay < 0.0f) mTimeOfDay += 24.0f;
+
+	CalculateSunParameters();
+}
 
 void DX12App::CalculateSunParameters()
 {
-	float normalizedTime = 0.6f;
+	float normalizedTime = mTimeOfDay / 24.0f;
 	float sunAngle = normalizedTime * XM_2PI - XM_PI;
 	float sunHeight = sin(sunAngle);
 	float sunAzimuth = cos(sunAngle);
@@ -522,12 +532,6 @@ void DX12App::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('D') & 0x8000)
 		mCamera.Strafe(mCamera.speed * dt);
 
-	if (GetAsyncKeyState(VK_OEM_PLUS) & 0x8000)  // +
-        mAtm.Cleanliness = std::min(1.0f, mAtm.Cleanliness + gt.DeltaTime());
-    
-    if (GetAsyncKeyState(VK_OEM_MINUS) & 0x8000) // -
-        mAtm.Cleanliness = std::max(0.0f, mAtm.Cleanliness - gt.DeltaTime());
-	
 	mCamera.UpdateViewMatrix();
 }
 
@@ -1440,8 +1444,8 @@ void DX12App::BuildMaterials()
 	bricks0->Name = "bricks0";
 	bricks0->MatCBIndex = matCBI++;
 	bricks0->DiffuseSrvHeapIndex = mTextures["bricks_diffuse"]->SrvHeapIndex;
-	bricks0->NormalSrvHeapIndex = mTextures["bricks_norm"]->SrvHeapIndex;
-	bricks0->DisplaceSrvHeapIndex = mTextures["bricks_disp"]->SrvHeapIndex;
+	//bricks0->NormalSrvHeapIndex = mTextures["bricks_norm"]->SrvHeapIndex;
+	//bricks0->DisplaceSrvHeapIndex = mTextures["bricks_disp"]->SrvHeapIndex;
 	bricks0->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 	bricks0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
 	bricks0->Roughness = 0.1f;
@@ -1488,7 +1492,7 @@ void DX12App::BuildRenderItems()
 	BuildRenderItem("box", "sky", XMMatrixIdentity(), nullptr, (int) RenderLayer::Sky, 5000.0f);
 	BuildRenderItem("quad", "bricks0", XMMatrixIdentity(), nullptr, (int)RenderLayer::Debug);
 
-	BuildRenderItem("box", "bricks0", XMMatrixTranslation(15.f, 0.f, 0.f), nullptr);
+	//BuildRenderItem("box", "bricks0", XMMatrixTranslation(15.f, 0.f, 0.f), nullptr);
 }
 
 void DX12App::BuildLightObjects()
@@ -1675,20 +1679,20 @@ void DX12App::DrawDeferredLights()
 		mTextures["skyDiffuseCube"]->SrvHeapIndex,
 		mCbvSrvDescriptorSize
 	));
-
 	// sky irradiance
 	mCommandList->SetGraphicsRootDescriptorTable(7, CD3DX12_GPU_DESCRIPTOR_HANDLE(
 		mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart(),
 		mTextures["skyIrradianceCube"]->SrvHeapIndex,
 		mCbvSrvDescriptorSize
 	));
-
 	// sky brdf
 	mCommandList->SetGraphicsRootDescriptorTable(8, CD3DX12_GPU_DESCRIPTOR_HANDLE(
 		mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart(),
 		mTextures["skyBrdf"]->SrvHeapIndex,
 		mCbvSrvDescriptorSize
 	));
+
+
 
 	for (auto& Light : mAllLights)
 	{
@@ -1890,4 +1894,3 @@ std::array<const CD3DX12_STATIC_SAMPLER_DESC, 7> DX12App::GetStaticSamplers()
 		anisotropicWrap, anisotropicClamp,
 		shadow};
 }
-
