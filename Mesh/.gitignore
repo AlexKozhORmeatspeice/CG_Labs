@@ -1,0 +1,15 @@
+# Visual Studio / build artifacts
+.vs/
+**/ipch/
+*.ipch
+*.obj
+*.pch
+*.pdb
+*.ilk
+*.tlog
+*.log
+*.cache
+[Bb]in/
+[Oo]bj/
+x64/
+x86/

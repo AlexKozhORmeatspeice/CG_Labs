@@ -15,8 +15,6 @@
 #include "Model.h"
 #include "StepTimer.h"
 #include "SimpleCamera.h"
-#include "DirectStorageLoader.h"
-#include "TextureLoader.h"
 
 using namespace DirectX;
 
@@ -38,7 +36,6 @@ public:
     virtual void OnDestroy();
     virtual void OnKeyDown(UINT8 key);
     virtual void OnKeyUp(UINT8 key);
-    virtual void OnMouseMove(int dx, int dy);
 
 private:
     static const UINT FrameCount = 2;
@@ -49,7 +46,6 @@ private:
         XMFLOAT4X4 WorldView;
         XMFLOAT4X4 WorldViewProj;
         uint32_t   DrawMeshlets;
-        uint32_t   UseTexture;
     };
 
     // Pipeline objects.
@@ -64,15 +60,10 @@ private:
     ComPtr<ID3D12RootSignature> m_rootSignature;
     ComPtr<ID3D12DescriptorHeap> m_rtvHeap;
     ComPtr<ID3D12DescriptorHeap> m_dsvHeap;
-    ComPtr<ID3D12DescriptorHeap> m_srvHeap;
-    ComPtr<ID3D12DescriptorHeap> m_samplerHeap;
     ComPtr<ID3D12PipelineState> m_pipelineState;
     ComPtr<ID3D12Resource> m_constantBuffer;
-    ComPtr<ID3D12Resource> m_diffuseTexture;
-    ComPtr<ID3D12Resource> m_normalTexture;
     UINT m_rtvDescriptorSize;
     UINT m_dsvDescriptorSize;
-    UINT m_srvDescriptorSize;
 
     ComPtr<ID3D12GraphicsCommandList6> m_commandList;
     SceneConstantBuffer m_constantBufferData;
@@ -81,9 +72,6 @@ private:
     StepTimer m_timer;
     SimpleCamera m_camera;
     Model m_model;
-    DirectStorageLoader m_dsLoader;
-    bool m_usedDirectStorage;
-    bool m_useTexture;
     
     // Synchronization objects.
     UINT m_frameIndex;
@@ -102,6 +90,4 @@ private:
     static const wchar_t* c_meshFilename;
     static const wchar_t* c_meshShaderFilename;
     static const wchar_t* c_pixelShaderFilename;
-    static const wchar_t* c_diffuseTextureFilename;
-    static const wchar_t* c_normalTextureFilename;
 };
